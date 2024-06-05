@@ -43,12 +43,10 @@ def main():
         cv2.namedWindow(window_frame_name)
         cv2.setMouseCallback(window_frame_name, videoFrame)
 
-    # VIDEO_SOURCE_PATH = 'https://192.168.1.12:8080/video' #"inference/Videos/Sample_Video.mp4"
     yolov8_weights = "weights/best.pt"
     COCO_FILE_PATH = "utils/coco.names"
 
     model = YOLO(yolov8_weights, "v8")
-    #cap = cv2.VideoCapture(VIDEO_SOURCE_PATH)
     picam2 = Picamera2()
     picam2.preview_configuration.main.size = (640,480)
     picam2.preview_configuration.main.format = "RGB888"
@@ -76,26 +74,14 @@ def main():
     CursorRight = [(830, 200), (880, 200), (880, 520), (830, 520)]
     Area = [LeftSideArea, CenterArea, RightSideArea]
 
-    # frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    # frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    # Print the frame size
-    # print(f"Frame width: {frame_width}")
-    # print(f"Frame height: {frame_height}")
-    # break
     while True:
-        #success, frame = cap.read()
-        im = picam2.capture_array()
+        frame = picam2.capture_array()
         
-        '''
-        if not success:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            continue
-        '''
         count += 1
         if count % 50 != 0:
             continue
         
-        frame = cv2.resize(im, (frame_width, frame_height))
+        frame = cv2.resize(frame, (frame_width, frame_height))
         frame = cv2.flip(frame,1)
         norm_frame_Pred_result = model.predict(source=[frame], conf=0.45, save=False)
         
@@ -107,38 +93,6 @@ def main():
         Center = []
         path_lists = (LeftSide, Center, RightSide)
 
-        """
-        if len(PX_convertToNumpy_NormV) != 0 and ShowOnFrame_BoundingBoxAndClsID:
-            obstacle_color = (220, 150, 160)
-            text_color = (255, 255, 255)
-
-            for i in range(len(norm_frame_Pred_result[0])):
-                boxes = norm_frame_Pred_result[0].boxes
-                box = boxes[i]  # returns one box
-                clsID = box.cls.numpy()[0]
-                conf = box.conf.numpy()[0]
-                bb = box.xyxy.numpy()[0]
-                cls_name = class_list[int(clsID)]
-
-                font = cv2.FONT_HERSHEY_COMPLEX
-                if cls_name == "alga":
-                    cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
-                    cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), cls_color[3], 2)
-                elif cls_name == "marie":
-                    cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
-                    cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), cls_color[2], 2)
-                elif cls_name == "marisa":
-                    cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
-                    cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), cls_color[1], 2)
-                elif cls_name == "memet":
-                    cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
-                    cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), cls_color[0], 2)
-                else:
-                    cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
-                    cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), obstacle_color, 2)
-        """
-        obstacle_color = (220, 150, 160)
-        text_color = (255, 255, 255)
         for index_, row in PX_Zones.iterrows():
             x1 = int(row[0])
             y1 = int(row[1])
@@ -167,30 +121,49 @@ def main():
                             boundingBox_ClsID_display(Frame=frame, Rec_pos=rec_pos, Color=cls_color[1], Text=clsID_and_Conf, Text_pos=text_pos)
                         cv2.circle(frame, cls_center_pnt, 25, cls_color[1], thickness=10)
                     
-                    # sum_of_cls += len(list_to_append)
         SideZoneColor = (0, 255, 0)
         WarningColor = (0, 0, 255)
         TextColor = (255, 255, 255)
-        # Nor
-        # cv2.polylines(frame, [np.array(LeftSideArea, np.int32)], True, SideZoneColor, 2)
-        # cv2.polylines(frame, [np.array(RightSideArea, np.int32)], True, SideZoneColor, 2)
-        cv2.polylines(frame, [np.array(CursorLeft, np.int32)], False, SideZoneColor, 3)
-        cv2.polylines(frame, [np.array(CursorRight, np.int32)], False, SideZoneColor, 3)
+        
+        if DEBUG_FRAME:
+            sum_of_cls = len(LeftSide) + len(RightSide) + len(Center)
+            if DEBUG_CMD:
+                print(f"Total class: {sum_of_cls}")
+            # cv2.polylines(frame, [np.array(RightSideArea, np.int32)], True, SideZoneColor, 2)
+            # cv2.polylines(frame, [np.array(LeftSideArea, np.int32)], True, SideZoneColor, 2)
+            cv2.polylines(frame, [np.array(CursorLeft, np.int32)], False, SideZoneColor, 3)
+            cv2.polylines(frame, [np.array(CursorRight, np.int32)], False, SideZoneColor, 3)
 
         font = cv2.FONT_HERSHEY_COMPLEX
-        # cv2.putText(frame, f"Right Side: {len(RightSide)}", (35, 35), font, fontScale=0.5, color=(0, 255, 0), thickness=2)
-        # cv2.putText(frame, f"Center: {len(Center)}", (35, 35+35), font, fontScale=0.5, color=(0, 255, 0), thickness=2)
-        # cv2.putText(frame, f"Left Side: {len(LeftSide)}", (35, 35+35+35), font, fontScale=0.5, color=(0, 255, 0), thickness=2)
-        if len(RightSide): # Turn Left
-            cv2.putText(frame, "Turn Left", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
-            cv2.polylines(frame, [np.array(CursorRight, np.int32)], False, WarningColor, 10)
-        elif len(LeftSide): # Turn Right
-            cv2.putText(frame, "Turn Right", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
-            cv2.polylines(frame, [np.array(CursorLeft, np.int32)], False, WarningColor, 10)
+        if len(RightSide):
+            if DEBUG_CMD:
+                print("Turn Left")
+
+            if DEBUG_FRAME:
+                cv2.putText(frame, "Turn Left", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
+                cv2.polylines(frame, [np.array(CursorRight, np.int32)], False, WarningColor, 10)
+        
+        elif len(LeftSide):
+            if DEBUG_CMD:
+                print("Turn Right")
+
+            if DEBUG_FRAME:
+                cv2.putText(frame, "Turn Right", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
+                cv2.polylines(frame, [np.array(CursorLeft, np.int32)], False, WarningColor, 10)
+        
         elif len(Center):
-            cv2.putText(frame, "Move Forward", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
-        else: # Stable
-            cv2.putText(frame, "Stop", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
+            if DEBUG_CMD:
+                print("Move Forward")
+
+            if DEBUG_FRAME:
+                cv2.putText(frame, "Move Forward", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
+        
+        else:
+            if DEBUG_CMD:
+                print("Stop")
+
+            if DEBUG_FRAME:
+                cv2.putText(frame, "Stop", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
 
         if ShowFrame:
             cv2.imshow(window_frame_name, frame)
