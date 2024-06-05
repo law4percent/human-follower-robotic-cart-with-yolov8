@@ -43,7 +43,7 @@ def main():
         cv2.namedWindow(window_frame_name)
         cv2.setMouseCallback(window_frame_name, videoFrame)
 
-    yolov8_weights = "weights/best.pt"
+    yolov8_weights = "weights/weights_yolov8n.pt"
     COCO_FILE_PATH = "utils/coco.names"
 
     model = YOLO(yolov8_weights, "v8")
