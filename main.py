@@ -5,11 +5,13 @@ import numpy as np
 import pandas as pd
 import serial
 import time
+from picamera2 import Picamera2
+
 
 ShowOnFrame_BoundingBoxAndClsID = False
 ShowFrame = True
 DEBUG_CMD = True
-DEBUG_FRAME = True
+DEBUG_FRAME = False
 MouseCallBack = False
 
 cls_color = [(0, 187, 255), (188, 214, 152), (250, 0, 106), (255, 161, 150)] #255, 187, 0
@@ -41,12 +43,18 @@ def main():
         cv2.namedWindow(window_frame_name)
         cv2.setMouseCallback(window_frame_name, videoFrame)
 
-    VIDEO_SOURCE_PATH = "inference/Videos/Sample_Video.mp4"
+    # VIDEO_SOURCE_PATH = 'https://192.168.1.12:8080/video' #"inference/Videos/Sample_Video.mp4"
     yolov8_weights = "weights/best.pt"
     COCO_FILE_PATH = "utils/coco.names"
 
     model = YOLO(yolov8_weights, "v8")
-    cap = cv2.VideoCapture(VIDEO_SOURCE_PATH)
+    #cap = cv2.VideoCapture(VIDEO_SOURCE_PATH)
+    picam2 = Picamera2()
+    picam2.preview_configuration.main.size = (640,480)
+    picam2.preview_configuration.main.format = "RGB888"
+    picam2.preview_configuration.align()
+    picam2.configure("preview")
+    picam2.start()
     
     class_list = Split_Class_List(COCO_FILE_PATH) 
 
@@ -54,13 +62,16 @@ def main():
     frame_width = 1280 # 1020
     frame_height = 720 # 500
 
+    '''
     if not cap.isOpened():
         print("Cannot open camera")
         exit()
-
+    '''
+    
     LeftSideArea = [(0, 0), (0, 720), (400, 720), (400, 0)]
     RightSideArea = [(880, 0), (880, 720), (1280, 720), (1280, 0)]
     CenterArea = [(400, 0), (400, 720), (880, 720), (880, 0)]
+    
     CursorLeft = [(450, 200), (400, 200), (400, 520), (450, 520)]
     CursorRight = [(830, 200), (880, 200), (880, 520), (830, 520)]
     Area = [LeftSideArea, CenterArea, RightSideArea]
@@ -72,17 +83,20 @@ def main():
     # print(f"Frame height: {frame_height}")
     # break
     while True:
-        success, frame = cap.read()
-
+        #success, frame = cap.read()
+        im = picam2.capture_array()
+        
+        '''
         if not success:
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
-        
+        '''
         count += 1
-        if count % 3 != 0:
+        if count % 50 != 0:
             continue
         
-        frame = cv2.resize(frame, (frame_width, frame_height))
+        frame = cv2.resize(im, (frame_width, frame_height))
+        frame = cv2.flip(frame,1)
         norm_frame_Pred_result = model.predict(source=[frame], conf=0.45, save=False)
         
         PX_Zones = pd.DataFrame(norm_frame_Pred_result[0].boxes.data).astype("float")
@@ -151,10 +165,9 @@ def main():
                         list_to_append.append(cls_center_x)
                         if ShowOnFrame_BoundingBoxAndClsID:
                             boundingBox_ClsID_display(Frame=frame, Rec_pos=rec_pos, Color=cls_color[1], Text=clsID_and_Conf, Text_pos=text_pos)
-                        cv2.circle(frame, cls_center_pnt, 25, cls_color[1], thickness=3)
+                        cv2.circle(frame, cls_center_pnt, 25, cls_color[1], thickness=10)
                     
                     # sum_of_cls += len(list_to_append)
-
         SideZoneColor = (0, 255, 0)
         WarningColor = (0, 0, 255)
         TextColor = (255, 255, 255)
@@ -169,13 +182,15 @@ def main():
         # cv2.putText(frame, f"Center: {len(Center)}", (35, 35+35), font, fontScale=0.5, color=(0, 255, 0), thickness=2)
         # cv2.putText(frame, f"Left Side: {len(LeftSide)}", (35, 35+35+35), font, fontScale=0.5, color=(0, 255, 0), thickness=2)
         if len(RightSide): # Turn Left
-            cv2.putText(frame, "Turn Right", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
+            cv2.putText(frame, "Turn Left", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
             cv2.polylines(frame, [np.array(CursorRight, np.int32)], False, WarningColor, 10)
         elif len(LeftSide): # Turn Right
-            cv2.putText(frame, "Turn Left", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
+            cv2.putText(frame, "Turn Right", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
             cv2.polylines(frame, [np.array(CursorLeft, np.int32)], False, WarningColor, 10)
-        else: # Stable
+        elif len(Center):
             cv2.putText(frame, "Move Forward", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
+        else: # Stable
+            cv2.putText(frame, "Stop", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
 
         if ShowFrame:
             cv2.imshow(window_frame_name, frame)
@@ -184,7 +199,7 @@ def main():
             break
 
 
-    cap.release()
+    #cap.release()
     cv2.destroyAllWindows()
     
 if __name__ == "__main__":
