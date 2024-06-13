@@ -7,7 +7,6 @@ import serial
 import time
 from picamera2 import Picamera2
 
-
 ShowOnFrame_BoundingBoxAndClsID = False
 ShowFrame = True
 DEBUG_CMD = True
@@ -37,6 +36,9 @@ def PolygonTest(Area, XY):
     return cv2.pointPolygonTest(np.array(Area, np.int32), XY, False)
 
 def main():
+    arduino = serial.Serial('/dev/ttyACM0',9600, timeout=1)
+    arduino.flush()
+    command = ['S', 'M', 'R', 'L', 'B']
     window_frame_name = "FRAME"
     
     if MouseCallBack:
@@ -136,14 +138,16 @@ def main():
 
         font = cv2.FONT_HERSHEY_COMPLEX
         if len(RightSide):
+            arduino.write(command[3])
             if DEBUG_CMD:
                 print("Turn Left")
-
+    
             if DEBUG_FRAME:
                 cv2.putText(frame, "Turn Left", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
                 cv2.polylines(frame, [np.array(CursorRight, np.int32)], False, WarningColor, 10)
         
         elif len(LeftSide):
+            arduino.write(command[2])
             if DEBUG_CMD:
                 print("Turn Right")
 
@@ -152,6 +156,7 @@ def main():
                 cv2.polylines(frame, [np.array(CursorLeft, np.int32)], False, WarningColor, 10)
         
         elif len(Center):
+            arduino.write(command[1])
             if DEBUG_CMD:
                 print("Move Forward")
 
@@ -159,6 +164,7 @@ def main():
                 cv2.putText(frame, "Move Forward", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
         
         else:
+            arduino.write(command[0])
             if DEBUG_CMD:
                 print("Stop")
 
