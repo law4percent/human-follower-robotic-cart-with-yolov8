@@ -7,13 +7,16 @@ import serial
 import time
 from picamera2 import Picamera2
 
+
 ShowOnFrame_BoundingBoxAndClsID = False
 ShowFrame = True
 DEBUG_CMD = True
 DEBUG_FRAME = False
 MouseCallBack = False
 
-cls_color = [(0, 187, 255), (188, 214, 152), (250, 0, 106), (255, 161, 150)] #255, 187, 0
+cls_color = [(0, 187, 255), (188, 214, 152), (250, 0, 106), (255, 161, 150)]
+arduino = serial.Serial('/dev/ttyACM0',9600, timeout=1)
+arduino.flush()
 
 def videoFrame(event, x, y, flags, param):
     if event == cv2.EVENT_MOUSEMOVE:
@@ -36,9 +39,6 @@ def PolygonTest(Area, XY):
     return cv2.pointPolygonTest(np.array(Area, np.int32), XY, False)
 
 def main():
-    arduino = serial.Serial('/dev/ttyACM0',9600, timeout=1)
-    arduino.flush()
-    command = ['S', 'M', 'R', 'L', 'B']
     window_frame_name = "FRAME"
     
     if MouseCallBack:
@@ -59,14 +59,7 @@ def main():
     class_list = Split_Class_List(COCO_FILE_PATH) 
 
     count = 0
-    frame_width = 1280 # 1020
-    frame_height = 720 # 500
-
-    '''
-    if not cap.isOpened():
-        print("Cannot open camera")
-        exit()
-    '''
+    frame_width, frame_height = [1280, 720]
     
     LeftSideArea = [(0, 0), (0, 720), (400, 720), (400, 0)]
     RightSideArea = [(880, 0), (880, 720), (1280, 720), (1280, 0)]
@@ -80,15 +73,13 @@ def main():
         frame = picam2.capture_array()
         
         count += 1
-        if count % 50 != 0:
+        if count % 3 != 0:
             continue
         
         frame = cv2.resize(frame, (frame_width, frame_height))
         frame = cv2.flip(frame,1)
         norm_frame_Pred_result = model.predict(source=[frame], conf=0.45, save=False)
-        
         PX_Zones = pd.DataFrame(norm_frame_Pred_result[0].boxes.data).astype("float")
-        PX_convertToNumpy_NormV = norm_frame_Pred_result[0].numpy()
 
         LeftSide = []
         RightSide = []
@@ -138,16 +129,16 @@ def main():
 
         font = cv2.FONT_HERSHEY_COMPLEX
         if len(RightSide):
-            arduino.write(command[3])
+            arduino.write(b"L")
             if DEBUG_CMD:
                 print("Turn Left")
-    
+
             if DEBUG_FRAME:
                 cv2.putText(frame, "Turn Left", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
                 cv2.polylines(frame, [np.array(CursorRight, np.int32)], False, WarningColor, 10)
         
         elif len(LeftSide):
-            arduino.write(command[2])
+            arduino.write(b"R")
             if DEBUG_CMD:
                 print("Turn Right")
 
@@ -156,7 +147,7 @@ def main():
                 cv2.polylines(frame, [np.array(CursorLeft, np.int32)], False, WarningColor, 10)
         
         elif len(Center):
-            arduino.write(command[1])
+            arduino.write(b"F")
             if DEBUG_CMD:
                 print("Move Forward")
 
@@ -164,7 +155,7 @@ def main():
                 cv2.putText(frame, "Move Forward", (35, 35), font, fontScale=1, color=TextColor, thickness=2)
         
         else:
-            arduino.write(command[0])
+            arduino.write(b"S")
             if DEBUG_CMD:
                 print("Stop")
 
@@ -177,8 +168,6 @@ def main():
         if cv2.waitKey(1) & 0xFF == 27: # ESC
             break
 
-
-    #cap.release()
     cv2.destroyAllWindows()
     
 if __name__ == "__main__":

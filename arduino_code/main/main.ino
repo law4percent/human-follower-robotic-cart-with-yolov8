@@ -30,7 +30,6 @@ void loop() {
       switch (serialData) {
         case 'S':
           stop();
-          // moveForward();
           digitalWrite(13, 1);
           break;
 
