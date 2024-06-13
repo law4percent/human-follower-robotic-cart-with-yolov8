@@ -14,37 +14,47 @@ void setup() {
   pinMode(enB, OUTPUT);
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
+  pinMode(13, OUTPUT);
+
+  digitalWrite(enA, 1);
+  digitalWrite(enB, 1);
 
   Serial.begin(9600);
 }
 
 void loop() {
   if (Serial.available() > 0) {
-    char serialData = Serial.read();
+    char serialData = char(Serial.read());
 
-    switch (serialData) {
-      case '0':
-        stop();
-        break;
+    if (serialData != '\n' and serialData != '\r') {
+      switch (serialData) {
+        case 'S':
+          stop();
+          // moveForward();
+          digitalWrite(13, 1);
+          break;
 
-      case '1':
-        moveForward();
-        break;
+        case 'F':
+          moveForward();
+          digitalWrite(13, 0);
+          break;
 
-      case '2':
-        turnRight();
-        break;
+        case 'R':
+          digitalWrite(13, 0);
+          turnRight();
+          break;
 
-      case '3':
-        turnLeft();
-        break;
+        case 'L':
+          digitalWrite(13, 0);
+          turnLeft();
+          break;
 
-      case '4': 
-        moveBackward();
-        break;
+        case 'B':
+          digitalWrite(13, 0);
+          moveBackward();
+          break;
+      }
     }
-  } else {
-    stop();
   }
 }
 
@@ -71,15 +81,15 @@ void stop() {
 }
 
 void turnRight() {
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  digitalWrite(in3, HIGH);  //TURN RIGHT
-  digitalWrite(in4, LOW);
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW); 
+  digitalWrite(in4, HIGH);
 }
 
 void turnLeft() {
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
-  digitalWrite(in3, LOW);  //TURN LEFT
-  digitalWrite(in4, HIGH);
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
 }
