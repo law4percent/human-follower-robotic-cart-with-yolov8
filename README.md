@@ -1,4 +1,4 @@
-## Human Follower Robot with YOLOv8
+## Human Follower Robotic Cart with YOLOv8
 Thrilled to present the latest project: a Human Follower Robot powered by the advanced YOLOv8 technology! This cutting-edge innovation combines artificial intelligence and robotics to create a robot that can efficiently and accurately follow humans. 🚀🤖
 
 ### DEMO 1
